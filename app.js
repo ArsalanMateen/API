@@ -23,10 +23,12 @@ const tasks = [
   },
 ];
 
+// read all tasks
 app.get("/tasks", (req, res) => {
   res.json(tasks);
 });
 
+// read a specific task id
 app.get("/tasks/:id", (req, res) => {
   const id = Number(req.params.id);
 
@@ -41,13 +43,14 @@ app.get("/tasks/:id", (req, res) => {
   });
 });
 
+// create new task
 app.post("/tasks", (req, res) => {
   const title = req.body.title;
 
   // if title is empty
-  if (!title) {
+  if (!title || title.trim() === "") {
     return res.status(400).json({
-      message: "Bad Request, title can't be empty",
+      message: "Bad Request: title can't be empty",
     });
   }
 
@@ -69,6 +72,62 @@ app.post("/tasks", (req, res) => {
   });
 });
 
+// update a specific task
+app.put("/tasks/:id", (req, res) => {
+  const id = Number(req.params.id);
+  const title = req.body.title;
+  const mark_as_done = req.body.mark_as_done;
+
+  if (title === undefined && mark_as_done === undefined) {
+    return res.status(400).json({
+      message: "Bad Request: Nothing to update",
+    });
+  }
+
+  for (const task of tasks) {
+    if (task.id === id) {
+      if (title !== undefined) {
+        if (title.trim() === "") {
+          return res.status(400).json({
+            message: "Bad Request: Empty/Invalid body",
+          });
+        }
+        task.title = title;
+      }
+      if (mark_as_done !== undefined) {
+        task.mark_as_done = mark_as_done;
+      }
+      return res.status(200).json(task);
+    }
+  }
+
+  res.status(404).json({
+    message: `Task ${id} not found`,
+  });
+});
+
+// delete a specific task
+app.delete("/tasks/:id", (req, res) => {
+  const id = Number(req.params.id);
+
+  let task_idx = null;
+  for (const task of tasks) {
+    if (task.id === id) {
+      task_idx = tasks.indexOf(task);
+      break;
+    }
+  }
+
+  if (task_idx > -1) {
+    tasks.splice(task_idx, 1);
+    return res.status(204).json({});
+  }
+
+  res.status(404).json({
+    message: `Task ${id} not found`,
+  });
+});
+
 app.get("/", (req, res) => {
   res.json({
     name: "Task API",
@@ -77,6 +136,7 @@ app.get("/", (req, res) => {
   });
 });
 
+// server health check
 app.get("/health", (req, res) => {
   res.json({
     status: "ok",
