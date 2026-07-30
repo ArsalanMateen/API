@@ -2,6 +2,8 @@ const express = require("express");
 const app = express();
 const port = 3000;
 
+app.use(express.json());
+
 // in-memory list of tasks objects
 const tasks = [
   {
@@ -36,6 +38,34 @@ app.get("/tasks/:id", (req, res) => {
 
   res.status(404).json({
     message: `Task ${id} not found`,
+  });
+});
+
+app.post("/tasks", (req, res) => {
+  const title = req.body.title;
+
+  // if title is empty
+  if (!title) {
+    return res.status(400).json({
+      message: "Bad Request, title can't be empty",
+    });
+  }
+
+  // if tasks list is empty
+  const id = tasks.id === 0 ? 1 : tasks[tasks.length - 1].id + 1;
+  tasks.push({
+    id: id,
+    title: title,
+    mark_as_done: false,
+  });
+
+  res.status(201).json({
+    message: "Task created",
+    task: {
+      id: id,
+      title: title,
+      mark_as_done: false,
+    },
   });
 });
 
