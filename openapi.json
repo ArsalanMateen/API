@@ -1,0 +1,282 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Task API",
+    "description": "A simple CRUD REST API built with Express.js.",
+    "version": "1.0.0"
+  },
+
+  "servers": [
+    {
+      "url": "http://localhost:3000",
+      "description": "Local development server"
+    }
+  ],
+
+  "paths": {
+    "/": {
+      "get": {
+        "summary": "API Information",
+        "description": "Returns basic information about the API.",
+        "responses": {
+          "200": {
+            "description": "API information returned successfully.",
+            "content": {
+              "application/json": {
+                "example": {
+                  "name": "Task API",
+                  "version": "1.0",
+                  "endpoints": ["/tasks"]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+
+    "/health": {
+      "get": {
+        "summary": "Health Check",
+        "description": "Checks whether the API is running.",
+        "responses": {
+          "200": {
+            "description": "API is healthy.",
+            "content": {
+              "application/json": {
+                "example": {
+                  "status": "ok"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+
+    "/tasks": {
+      "get": {
+        "summary": "Get All Tasks",
+        "description": "Returns all tasks.",
+        "responses": {
+          "200": {
+            "description": "List of tasks.",
+            "content": {
+              "application/json": {
+                "example": [
+                  {
+                    "id": 1,
+                    "title": "FlyRank Week 1 Assignment",
+                    "mark_as_done": true
+                  }
+                ]
+              }
+            }
+          }
+        }
+      },
+
+      "post": {
+        "summary": "Create Task",
+        "description": "Creates a new task.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "example": {
+                "title": "Learn how to document API"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Task created successfully.",
+            "content": {
+              "application/json": {
+                "example": {
+                  "message": "Task created",
+                  "task": {
+                    "id": 2,
+                    "title": "Learn how to document API",
+                    "mark_as_done": false
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request.",
+            "content": {
+              "application/json": {
+                "example": {
+                  "message": "Bad Request: title can't be empty"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+
+    "/tasks/{id}": {
+      "get": {
+        "summary": "Get Task By ID",
+        "description": "Returns a single task.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Task ID",
+            "schema": {
+              "type": "integer"
+            },
+            "example": 1
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Task found.",
+            "content": {
+              "application/json": {
+                "example": {
+                  "id": 1,
+                  "title": "FlyRank Week 1 Assignment",
+                  "mark_as_done": true
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Task not found.",
+            "content": {
+              "application/json": {
+                "example": {
+                  "message": "Task 3 not found"
+                }
+              }
+            }
+          }
+        }
+      },
+
+      "put": {
+        "summary": "Update Task",
+        "description": "Updates the title and/or completion status of a task.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Task ID",
+            "schema": {
+              "type": "integer"
+            },
+            "example": 1
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "examples": {
+                "Update Title": {
+                  "value": {
+                    "title": "Learn new concepts from javascript.info"
+                  }
+                },
+                "Mark Completed": {
+                  "value": {
+                    "mark_as_done": true
+                  }
+                },
+                "Update Both": {
+                  "value": {
+                    "title": "Learn new concepts from javascript.info",
+                    "mark_as_done": false
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Task updated successfully.",
+            "content": {
+              "application/json": {
+                "example": {
+                  "id": 3,
+                  "title": "Learn new concepts from javascript.info",
+                  "mark_as_done": false
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "Nothing To Update": {
+                    "value": {
+                      "message": "Bad Request: Nothing to update"
+                    }
+                  },
+                  "Invalid Title": {
+                    "value": {
+                      "message": "Bad Request: Empty/Invalid body"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Task not found.",
+            "content": {
+              "application/json": {
+                "example": {
+                  "message": "Task 4 not found"
+                }
+              }
+            }
+          }
+        }
+      },
+
+      "delete": {
+        "summary": "Delete Task",
+        "description": "Deletes a task.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Task ID",
+            "schema": {
+              "type": "integer"
+            },
+            "example": 1
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Task deleted successfully."
+          },
+          "404": {
+            "description": "Task not found.",
+            "content": {
+              "application/json": {
+                "example": {
+                  "message": "Task 4 not found"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

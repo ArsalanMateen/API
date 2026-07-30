@@ -1,8 +1,12 @@
 const express = require("express");
 const app = express();
 const port = 3000;
+const swaggerUi = require('swagger-ui-express')
+const swaggerDoc = require('./openapi.json');
+
 
 app.use(express.json());
+app.use('/docs', swaggerUi.serve, swaggerUi.setup(swaggerDoc));
 
 // in-memory list of tasks objects
 const tasks = [
@@ -120,7 +124,7 @@ app.delete("/tasks/:id", (req, res) => {
 
   if (task_idx > -1) {
     tasks.splice(task_idx, 1);
-    return res.status(204).json({});
+    return res.sendStatus(204);
   }
 
   res.status(404).json({
