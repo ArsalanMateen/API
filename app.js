@@ -1,31 +1,38 @@
 const express = require("express");
+const swaggerUi = require("swagger-ui-express");
+const swaggerDoc = require("./openapi.json");
+const db = require('better-sqlite3')("tasks.db");
+
 const app = express();
 const port = 3000;
-const swaggerUi = require('swagger-ui-express')
-const swaggerDoc = require('./openapi.json');
-
+db.pragma("journal_mode = WAL");
 
 app.use(express.json());
-app.use('/docs', swaggerUi.serve, swaggerUi.setup(swaggerDoc));
+app.use("/docs", swaggerUi.serve, swaggerUi.setup(swaggerDoc));
 
-// in-memory list of tasks objects
-const tasks = [
-  {
-    id: 1,
-    title: "FlyRank Week 1 Assignment",
-    mark_as_done: false,
-  },
-  {
-    id: 2,
-    title: "Feedback on Startup Proposal",
-    mark_as_done: false,
-  },
-  {
-    id: 3,
-    title: "ML freecodecamp Playist",
-    mark_as_done: false,
-  },
-];
+// create table if not exists
+const createTable = () => {
+  const stmt = db.prepare(
+    "CREATE TABLE IF NOT EXISTS tasks (id INTEGER PRIMARY KEY AUTOINCREMENT, title TEXT NOT NULL, mark_as_done BOOLEAN NOT NULL)",
+  );
+  return stmt.run();
+}
+createTable();
+
+// insert data to database
+const insertTask = (title, mark_as_done) => {
+  const stmt = db.prepare(
+    "INSERT INTO tasks (title, mark_as_done) VALUES (?, ?)",
+  );
+  return stmt.run(title, mark_as_done);
+};
+
+insertTask(
+  "Review project requirements and set up the initial workflow",
+  0,
+);
+insertTask("Prepare deployment scripts and documentation", 0);
+insertTask("Deploy the application to production", 0);
 
 // read all tasks
 app.get("/tasks", (req, res) => {
@@ -132,6 +139,7 @@ app.delete("/tasks/:id", (req, res) => {
   });
 });
 
+// root
 app.get("/", (req, res) => {
   res.json({
     name: "Task API",
