@@ -36,22 +36,25 @@ insertTask("Deploy the application to production", 0);
 
 // read all tasks
 app.get("/tasks", (req, res) => {
-  res.json(tasks);
+
+  const stmt = db.prepare("SELECT * FROM tasks");
+  const tasks = stmt.all();
+  res.status(200).json(tasks);
 });
 
 // read a specific task id
 app.get("/tasks/:id", (req, res) => {
   const id = Number(req.params.id);
 
-  for (const task of tasks) {
-    if (task.id === id) {
-      return res.status(200).json(task);
-    }
-  }
+  const stmt = db.prepare("SELECT * FROM tasks WHERE id = ?");
+  const task = stmt.get(id);
 
-  res.status(404).json({
-    message: `Task ${id} not found`,
-  });
+  if (!task) {
+    return res.status(404).json({
+      message: `Task ${id} not found`,
+    });
+  }
+  res.status(200).json(task);
 });
 
 // create new task
