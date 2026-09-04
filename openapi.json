@@ -2,7 +2,7 @@
   "openapi": "3.0.0",
   "info": {
     "title": "Task API",
-    "description": "A simple CRUD REST API built with Express.js.",
+    "description": "A simple CRUD API built with Express.js.",
     "version": "1.0.0"
   },
 

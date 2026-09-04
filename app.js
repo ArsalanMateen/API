@@ -1,7 +1,7 @@
 const express = require("express");
 const swaggerUi = require("swagger-ui-express");
 const swaggerDoc = require("./openapi.json");
-const db = require('better-sqlite3')("tasks.db");
+const db = require("better-sqlite3")("tasks.db");
 
 const app = express();
 const port = 3000;
@@ -16,7 +16,7 @@ const createTable = () => {
     "CREATE TABLE IF NOT EXISTS tasks (id INTEGER PRIMARY KEY AUTOINCREMENT, title TEXT NOT NULL, mark_as_done BOOLEAN NOT NULL)",
   );
   return stmt.run();
-}
+};
 createTable();
 
 // insert data to database
@@ -27,16 +27,16 @@ const insertTask = (title, mark_as_done) => {
   return stmt.run(title, mark_as_done);
 };
 
-insertTask(
-  "Review project requirements and set up the initial workflow",
-  0,
-);
-insertTask("Prepare deployment scripts and documentation", 0);
-insertTask("Deploy the application to production", 0);
+const taskCount = db.prepare("SELECT COUNT(*) AS count FROM tasks").get();
+
+if (taskCount.count === 0) {
+  insertTask("Review project requirements and set up the initial workflow", 0);
+  insertTask("Prepare deployment scripts and documentation", 0);
+  insertTask("Deploy the application to production", 0);
+}
 
 // read all tasks
 app.get("/tasks", (req, res) => {
-
   const stmt = db.prepare("SELECT * FROM tasks");
   const tasks = stmt.all();
   res.status(200).json(tasks);
@@ -68,20 +68,15 @@ app.post("/tasks", (req, res) => {
     });
   }
 
-  // if tasks list is empty
-  const id = tasks.id === 0 ? 1 : tasks[tasks.length - 1].id + 1;
-  tasks.push({
-    id: id,
-    title: title,
-    mark_as_done: false,
-  });
+  const id = insertTask(title, 0).lastInsertRowid;
+  const task = db.prepare("SELECT * FROM tasks WHERE id = ?").get(id);
 
   res.status(201).json({
     message: "Task created",
     task: {
       id: id,
-      title: title,
-      mark_as_done: false,
+      title: task.title,
+      mark_as_done: task.mark_as_done,
     },
   });
 });
@@ -98,26 +93,28 @@ app.put("/tasks/:id", (req, res) => {
     });
   }
 
-  for (const task of tasks) {
-    if (task.id === id) {
-      if (title !== undefined) {
-        if (title.trim() === "") {
-          return res.status(400).json({
-            message: "Bad Request: Empty/Invalid body",
-          });
-        }
-        task.title = title;
-      }
-      if (mark_as_done !== undefined) {
-        task.mark_as_done = mark_as_done;
-      }
-      return res.status(200).json(task);
-    }
-  }
+  // check if id is valid
 
-  res.status(404).json({
-    message: `Task ${id} not found`,
-  });
+  // for (const task of tasks) {
+  //   if (task.id === id) {
+  //     if (title !== undefined) {
+  //       if (title.trim() === "") {
+  //         return res.status(400).json({
+  //           message: "Bad Request: Empty/Invalid body",
+  //         });
+  //       }
+  //       task.title = title;
+  //     }
+  //     if (mark_as_done !== undefined) {
+  //       task.mark_as_done = mark_as_done;
+  //     }
+  //     return res.status(200).json(task);
+  //   }
+  // }
+
+  // res.status(404).json({
+  //   message: `Task ${id} not found`,
+  // });
 });
 
 // delete a specific task
