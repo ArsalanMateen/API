@@ -10,12 +10,13 @@ db.pragma("journal_mode = WAL");
 app.use(express.json());
 app.use("/docs", swaggerUi.serve, swaggerUi.setup(swaggerDoc));
 
-// create table if not exists
+// create table if not exists and create indexes
 const createTable = () => {
-  const stmt = db.prepare(
+  db.prepare(
     "CREATE TABLE IF NOT EXISTS tasks (id INTEGER PRIMARY KEY AUTOINCREMENT, title TEXT NOT NULL, mark_as_done BOOLEAN NOT NULL)",
-  );
-  return stmt.run();
+  ).run();
+  db.prepare("CREATE INDEX IF NOT EXISTS idx_tasks_title ON tasks(title)").run();
+  db.prepare("CREATE INDEX IF NOT EXISTS idx_tasks_done ON tasks(mark_as_done)").run();
 };
 createTable();
 
@@ -27,18 +28,58 @@ const insertTask = (title, mark_as_done) => {
   return stmt.run(title, mark_as_done);
 };
 
+// Seed initial tasks wrapped in a transaction for atomicity
+const seedTasks = db.transaction((tasksToSeed) => {
+  const stmt = db.prepare("INSERT INTO tasks (title, mark_as_done) VALUES (?, ?)");
+  for (const task of tasksToSeed) {
+    stmt.run(task.title, task.mark_as_done);
+  }
+});
+
 const taskCount = db.prepare("SELECT COUNT(*) AS count FROM tasks").get();
 
 if (taskCount.count === 0) {
-  insertTask("Review project requirements and set up the initial workflow", 0);
-  insertTask("Prepare deployment scripts and documentation", 0);
-  insertTask("Deploy the application to production", 0);
+  seedTasks([
+    { title: "Review project requirements and set up the initial workflow", mark_as_done: 0 },
+    { title: "Prepare deployment scripts and documentation", mark_as_done: 0 },
+    { title: "Deploy the application to production", mark_as_done: 0 },
+  ]);
 }
 
-// read all tasks
+// read all tasks (with optional search, filter by status, and sort)
 app.get("/tasks", (req, res) => {
-  const stmt = db.prepare("SELECT * FROM tasks");
-  const tasks = stmt.all();
+  const { search, done, mark_as_done, sort } = req.query;
+
+  let query = "SELECT * FROM tasks";
+  const conditions = [];
+  const params = [];
+
+  if (search && search.trim() !== "") {
+    conditions.push("title LIKE ?");
+    params.push(`%${search.trim()}%`);
+  }
+
+  const statusFilter = mark_as_done !== undefined ? mark_as_done : done;
+  if (statusFilter !== undefined) {
+    if (statusFilter === "true" || statusFilter === "1") {
+      conditions.push("mark_as_done = 1");
+    } else if (statusFilter === "false" || statusFilter === "0") {
+      conditions.push("mark_as_done = 0");
+    }
+  }
+
+  if (conditions.length > 0) {
+    query += " WHERE " + conditions.join(" AND ");
+  }
+
+  if (sort === "title" || sort === "asc") {
+    query += " ORDER BY title ASC";
+  } else if (sort === "desc") {
+    query += " ORDER BY title DESC";
+  }
+
+  const stmt = db.prepare(query);
+  const tasks = stmt.all(...params);
   res.status(200).json(tasks);
 });
 
@@ -138,12 +179,25 @@ app.delete("/tasks/:id", (req, res) => {
   res.status(204).send();
 });
 
+// database statistics endpoint
+app.get("/stats", (req, res) => {
+  const total = db.prepare("SELECT COUNT(*) AS count FROM tasks").get().count;
+  const completed = db.prepare("SELECT COUNT(*) AS count FROM tasks WHERE mark_as_done = 1").get().count;
+  const pending = db.prepare("SELECT COUNT(*) AS count FROM tasks WHERE mark_as_done = 0").get().count;
+
+  res.status(200).json({
+    total,
+    completed,
+    pending,
+  });
+});
+
 // root
 app.get("/", (req, res) => {
   res.json({
     name: "Task API",
     verson: "1.0",
-    endpoints: ["/tasks"],
+    endpoints: ["/tasks", "/tasks/:id", "/stats"],
   });
 });
 
