@@ -84,8 +84,11 @@ app.post("/tasks", (req, res) => {
 // update a specific task
 app.put("/tasks/:id", (req, res) => {
   const id = Number(req.params.id);
-  const title = req.body.title;
-  const mark_as_done = req.body.mark_as_done;
+  let { title, mark_as_done, done } = req.body;
+
+  if (mark_as_done === undefined && done !== undefined) {
+    mark_as_done = done;
+  }
 
   if (title === undefined && mark_as_done === undefined) {
     return res.status(400).json({
@@ -93,50 +96,46 @@ app.put("/tasks/:id", (req, res) => {
     });
   }
 
-  // check if id is valid
+  if (title !== undefined && (typeof title !== "string" || title.trim() === "")) {
+    return res.status(400).json({
+      message: "Bad Request: Empty/Invalid body",
+    });
+  }
 
-  // for (const task of tasks) {
-  //   if (task.id === id) {
-  //     if (title !== undefined) {
-  //       if (title.trim() === "") {
-  //         return res.status(400).json({
-  //           message: "Bad Request: Empty/Invalid body",
-  //         });
-  //       }
-  //       task.title = title;
-  //     }
-  //     if (mark_as_done !== undefined) {
-  //       task.mark_as_done = mark_as_done;
-  //     }
-  //     return res.status(200).json(task);
-  //   }
-  // }
+  const existing = db.prepare("SELECT * FROM tasks WHERE id = ?").get(id);
+  if (!existing) {
+    return res.status(404).json({
+      message: `Task ${id} not found`,
+    });
+  }
 
-  // res.status(404).json({
-  //   message: `Task ${id} not found`,
-  // });
+  const updatedTitle = title !== undefined ? title.trim() : existing.title;
+  const updatedDone = mark_as_done !== undefined ? (mark_as_done ? 1 : 0) : existing.mark_as_done;
+
+  db.prepare("UPDATE tasks SET title = ?, mark_as_done = ? WHERE id = ?").run(
+    updatedTitle,
+    updatedDone,
+    id
+  );
+
+  const updatedTask = db.prepare("SELECT * FROM tasks WHERE id = ?").get(id);
+  res.status(200).json(updatedTask);
 });
 
 // delete a specific task
 app.delete("/tasks/:id", (req, res) => {
   const id = Number(req.params.id);
 
-  let task_idx = null;
-  for (const task of tasks) {
-    if (task.id === id) {
-      task_idx = tasks.indexOf(task);
-      break;
-    }
+  const stmt = db.prepare("DELETE FROM tasks WHERE id = ?");
+  const info = stmt.run(id);
+
+  if (info.changes === 0) {
+    return res.status(404).json({
+      message: `Task ${id} not found`,
+    });
   }
 
-  if (task_idx > -1) {
-    tasks.splice(task_idx, 1);
-    return res.sendStatus(204);
-  }
-
-  res.status(404).json({
-    message: `Task ${id} not found`,
-  });
+  res.status(204).send();
 });
 
 // root
