@@ -1,2 +1,9 @@
-/node_modules
-package-lock.json
+node_modules
+tasks.db
+tasks.db-wal
+tasks.db-shm
+.postman
+postman/
+.env
+.env*.local
+.DS_Store
