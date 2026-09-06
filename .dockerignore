@@ -1,0 +1,9 @@
+node_modules
+npm-debug.log
+.git
+.gitignore
+.env
+tasks.db
+tasks.db-wal
+tasks.db-shm
+.DS_Store
